@@ -3407,10 +3407,10 @@ libc_bitflags! {
 
 feature! {
 #![feature = "fs"]
-#[cfg(not(target_os = "nuttx"))]
 
 /// Checks the file named by `path` for accessibility according to the flags given by `amode`
 /// See [access(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/access.html)
+#[cfg(not(target_os = "nuttx"))]
 pub fn access<P: ?Sized + NixPath>(path: &P, amode: AccessFlags) -> Result<()> {
     let res = path.with_nix_path(|cstr| unsafe {
         libc::access(cstr.as_ptr(), amode.bits())
