@@ -5,7 +5,7 @@ pub use libc::c_ulong;
 pub use libc::stat as FileStat;
 pub use libc::{dev_t, mode_t};
 
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
 use crate::fcntl::AtFlags;
 use crate::sys::time::{TimeSpec, TimeVal};
 use crate::{errno::Errno, NixPath, Result};
@@ -29,6 +29,7 @@ libc_bitflags! {
     /// "File mode / permissions" flags.
     pub struct Mode: mode_t {
         /// Read, write and execute for owner.
+        #[cfg(not(target_os = "nuttx"))]
         S_IRWXU;
         /// Read for owner.
         S_IRUSR;
@@ -37,6 +38,7 @@ libc_bitflags! {
         /// Execute for owner.
         S_IXUSR;
         /// Read write and execute for group.
+        #[cfg(not(target_os = "nuttx"))]
         S_IRWXG;
         /// Read for group.
         S_IRGRP;
@@ -45,6 +47,7 @@ libc_bitflags! {
         /// Execute for group.
         S_IXGRP;
         /// Read, write and execute for other.
+        #[cfg(not(target_os = "nuttx"))]
         S_IRWXO;
         /// Read for other.
         S_IROTH;
@@ -166,7 +169,7 @@ pub fn mknod<P: ?Sized + NixPath>(
 }
 
 /// Create a special or ordinary file, relative to a given directory.
-#[cfg(not(any(apple_targets, target_os = "redox", target_os = "haiku")))]
+#[cfg(not(any(apple_targets, target_os = "redox", target_os = "haiku", target_os = "nuttx")))]
 pub fn mknodat<Fd: std::os::fd::AsFd, P: ?Sized + NixPath>(
     dirfd: Fd,
     path: &P,
@@ -244,7 +247,7 @@ pub fn fstat<Fd: std::os::fd::AsFd>(fd: Fd) -> Result<FileStat> {
     Ok(unsafe { dst.assume_init() })
 }
 
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
 pub fn fstatat<Fd: std::os::fd::AsFd, P: ?Sized + NixPath>(
     dirfd: Fd,
     pathname: &P,
@@ -304,7 +307,7 @@ pub enum FchmodatFlags {
 /// # References
 ///
 /// [fchmodat(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/fchmodat.html).
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
 pub fn fchmodat<Fd: std::os::fd::AsFd, P: ?Sized + NixPath>(
     dirfd: Fd,
     path: &P,
@@ -431,7 +434,7 @@ pub enum UtimensatFlags {
 /// # References
 ///
 /// [utimensat(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/utimens.html).
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
 pub fn utimensat<Fd: std::os::fd::AsFd, P: ?Sized + NixPath>(
     dirfd: Fd,
     path: &P,
@@ -466,7 +469,7 @@ pub fn utimensat<Fd: std::os::fd::AsFd, P: ?Sized + NixPath>(
 /// then `dirfd` is ignored.
 ///
 /// [link]: crate::fcntl::AT_FDCWD
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
 pub fn mkdirat<Fd: std::os::fd::AsFd, P: ?Sized + NixPath>(
     dirfd: Fd,
     path: &P,

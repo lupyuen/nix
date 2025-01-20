@@ -77,7 +77,7 @@ pub use self::posix_fadvise::{posix_fadvise, PosixFadviseAdvice};
 pub const AT_FDCWD: std::os::fd::BorrowedFd<'static> =
     unsafe { std::os::fd::BorrowedFd::borrow_raw(libc::AT_FDCWD) };
 
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
 #[cfg(any(feature = "fs", feature = "process", feature = "user"))]
 libc_bitflags! {
     /// Flags that control how the various *at syscalls behave.
@@ -128,7 +128,8 @@ libc_bitflags!(
         #[cfg(not(any(
             solarish,
             target_os = "aix",
-            target_os = "haiku"
+            target_os = "haiku",
+            target_os = "nuttx"
         )))]
         O_ASYNC;
         /// Closes the file descriptor once an `execve` call is made.
@@ -173,7 +174,7 @@ libc_bitflags!(
         #[cfg(not(target_os = "redox"))]
         O_NOCTTY;
         /// Same as `O_NONBLOCK`.
-        #[cfg(not(any(target_os = "redox", target_os = "haiku")))]
+        #[cfg(not(any(target_os = "redox", target_os = "haiku", target_os = "nuttx")))]
         O_NDELAY;
         /// `open()` will fail if the given path is a symbolic link.
         O_NOFOLLOW;
@@ -215,7 +216,7 @@ libc_bitflags!(
         #[cfg(any(bsd, target_os = "redox"))]
         O_SHLOCK;
         /// Implicitly follow each `write()` with an `fsync()`.
-        #[cfg(not(target_os = "redox"))]
+        #[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
         O_SYNC;
         /// Create an unnamed temporary file.
         #[cfg(linux_android)]
@@ -546,9 +547,9 @@ unsafe fn inner_readlink<P: ?Sized + NixPath>(
     dirfd: Option<RawFd>,
     path: &P,
 ) -> Result<OsString> {
-    #[cfg(not(target_os = "hurd"))]
+    #[cfg(not(any(target_os = "hurd", target_os = "nuttx")))]
     const PATH_MAX: usize = libc::PATH_MAX as usize;
-    #[cfg(target_os = "hurd")]
+    #[cfg(any(target_os = "hurd", target_os = "nuttx"))]
     const PATH_MAX: usize = 1024; // Hurd does not define a hard limit, so try a guess first
     let mut v = Vec::with_capacity(PATH_MAX);
 
@@ -571,7 +572,7 @@ unsafe fn inner_readlink<P: ?Sized + NixPath>(
     // Let's try to ask lstat how many bytes to allocate.
     let mut try_size = {
         let reported_size = match dirfd {
-            #[cfg(target_os = "redox")]
+            #[cfg(any(target_os = "redox", target_os = "nuttx"))]
             Some(_) => unreachable!("redox does not have readlinkat(2)"),
             #[cfg(any(linux_android, target_os = "freebsd", target_os = "hurd"))]
             Some(dirfd) => {
@@ -597,7 +598,8 @@ unsafe fn inner_readlink<P: ?Sized + NixPath>(
                 linux_android,
                 target_os = "redox",
                 target_os = "freebsd",
-                target_os = "hurd"
+                target_os = "hurd",
+                target_os = "nuttx"
             )))]
             Some(dirfd) => {
                 // SAFETY:
@@ -726,7 +728,7 @@ feature! {
 #![feature = "fs"]
 
 /// Commands for use with [`fcntl`].
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
 #[derive(Debug, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum FcntlArg<'a> {
@@ -834,17 +836,19 @@ pub enum FcntlArg<'a> {
 }
 
 /// Commands for use with [`fcntl`].
-#[cfg(target_os = "redox")]
+#[cfg(any(target_os = "redox", target_os = "nuttx"))]
 #[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
 #[non_exhaustive]
 pub enum FcntlArg {
     /// Duplicate the provided file descriptor
+    #[cfg(not(target_os = "nuttx"))]
     F_DUPFD(RawFd),
     /// Duplicate the provided file descriptor and set the `FD_CLOEXEC` flag on it.
     F_DUPFD_CLOEXEC(RawFd),
     /// Get the close-on-exec flag associated with the file descriptor
     F_GETFD,
     /// Set the close-on-exec flag associated with the file descriptor
+    #[cfg(not(target_os = "nuttx"))]
     F_SETFD(FdFlag), // FD_FLAGS
     /// Get descriptor status flags
     F_GETFL,
@@ -864,19 +868,21 @@ pub fn fcntl<Fd: std::os::fd::AsFd>(fd: Fd, arg: FcntlArg) -> Result<c_int> {
     let fd = fd.as_fd().as_raw_fd();
     let res = unsafe {
         match arg {
+            #[cfg(not(target_os = "nuttx"))]
             F_DUPFD(rawfd) => libc::fcntl(fd, libc::F_DUPFD, rawfd),
             F_DUPFD_CLOEXEC(rawfd) => {
                 libc::fcntl(fd, libc::F_DUPFD_CLOEXEC, rawfd)
             }
             F_GETFD => libc::fcntl(fd, libc::F_GETFD),
+            #[cfg(not(target_os = "nuttx"))]
             F_SETFD(flag) => libc::fcntl(fd, libc::F_SETFD, flag.bits()),
             F_GETFL => libc::fcntl(fd, libc::F_GETFL),
             F_SETFL(flag) => libc::fcntl(fd, libc::F_SETFL, flag.bits()),
-            #[cfg(not(target_os = "redox"))]
+            #[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
             F_SETLK(flock) => libc::fcntl(fd, libc::F_SETLK, flock),
-            #[cfg(not(target_os = "redox"))]
+            #[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
             F_SETLKW(flock) => libc::fcntl(fd, libc::F_SETLKW, flock),
-            #[cfg(not(target_os = "redox"))]
+            #[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
             F_GETLK(flock) => libc::fcntl(fd, libc::F_GETLK, flock),
             #[cfg(linux_android)]
             F_OFD_SETLK(flock) => libc::fcntl(fd, libc::F_OFD_SETLK, flock),
@@ -998,7 +1004,7 @@ pub enum FlockArg {
 }
 
 #[allow(missing_docs)]
-#[cfg(not(any(target_os = "redox", target_os = "solaris")))]
+#[cfg(not(any(target_os = "redox", target_os = "solaris", target_os = "nuttx")))]
 #[deprecated(since = "0.28.0", note = "`fcntl::Flock` should be used instead.")]
 pub fn flock(fd: RawFd, arg: FlockArg) -> Result<()> {
     use self::FlockArg::*;
@@ -1036,7 +1042,7 @@ pub unsafe trait Flockable: std::os::fd::AsRawFd {}
 #[derive(Debug)]
 pub struct Flock<T: Flockable>(T);
 
-#[cfg(not(any(target_os = "redox", target_os = "solaris")))]
+#[cfg(not(any(target_os = "redox", target_os = "solaris", target_os = "nuttx")))]
 impl<T: Flockable> Drop for Flock<T> {
     fn drop(&mut self) {
         let res = Errno::result(unsafe { libc::flock(self.0.as_raw_fd(), libc::LOCK_UN) });
@@ -1061,7 +1067,7 @@ impl<T: Flockable> DerefMut for Flock<T> {
     }
 }
 
-#[cfg(not(any(target_os = "redox", target_os = "solaris")))]
+#[cfg(not(any(target_os = "redox", target_os = "solaris", target_os = "nuttx")))]
 impl<T: Flockable> Flock<T> {
     /// Obtain a/an flock.
     ///
