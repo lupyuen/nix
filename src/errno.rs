@@ -49,12 +49,12 @@ cfg_if! {
         unsafe fn errno_location() -> *mut c_int {
             unsafe { libc::_Errno() }
         }
-    } else if #[cfg(any(target_os = "nuttx"))] { 
+    } else if #[cfg(any(target_os = "nuttx"))] {
         unsafe fn errno_location() -> *mut c_int {
             extern "C" { pub fn __errno() -> *mut c_int; }
             unsafe { __errno() }
         }
-    } 
+    }
 }
 
 /// Returns the platform-specific value of errno
