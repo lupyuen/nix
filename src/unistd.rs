@@ -2,7 +2,7 @@
 
 use crate::errno::Errno;
 
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
 #[cfg(feature = "fs")]
 use crate::fcntl::AtFlags;
 
@@ -836,7 +836,8 @@ pub fn mkfifo<P: ?Sized + NixPath>(path: &P, mode: crate::sys::stat::Mode) -> Re
     apple_targets,
     target_os = "haiku",
     target_os = "android",
-    target_os = "redox"
+    target_os = "redox",
+    target_os = "nuttx"
 )))]
 pub fn mkfifoat<Fd: std::os::fd::AsFd, P: ?Sized + NixPath>(
     dirfd: Fd,
@@ -950,9 +951,9 @@ pub fn getcwd() -> Result<PathBuf> {
                 }
             }
 
-            #[cfg(not(target_os = "hurd"))]
+            #[cfg(not(any(target_os = "hurd", target_os = "nuttx")))]
             const PATH_MAX: usize = libc::PATH_MAX as usize;
-            #[cfg(target_os = "hurd")]
+            #[cfg(any(target_os = "hurd", target_os = "nuttx"))]
             const PATH_MAX: usize = 1024; // Hurd does not define a hard limit, so try a guess first
 
             // Trigger the internal buffer resizing logic.
@@ -1548,10 +1549,10 @@ pub fn isatty<Fd: std::os::fd::AsFd>(fd: Fd) -> Result<bool> {
 }
 
 #[allow(missing_docs)]
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
 pub type LinkatFlags = AtFlags;
 #[allow(missing_docs)]
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
 impl LinkatFlags {
     #[deprecated(since = "0.28.0", note = "The variant is deprecated, please use `AtFlags` instead")]
     #[allow(non_upper_case_globals)]
@@ -1576,7 +1577,7 @@ impl LinkatFlags {
 ///
 /// # References
 /// See also [linkat(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/linkat.html)
-#[cfg(not(target_os = "redox"))] // Redox does not have this yet
+#[cfg(not(any(target_os = "redox", target_os = "nuttx")))] // Redox does not have this yet
 pub fn linkat<Fd1: std::os::fd::AsFd, Fd2: std::os::fd::AsFd, P1: ?Sized + NixPath, P2: ?Sized + NixPath>(
     olddirfd: Fd1,
     oldpath: &P1,
@@ -1630,7 +1631,7 @@ pub enum UnlinkatFlags {
 ///
 /// # References
 /// See also [unlinkat(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/unlinkat.html)
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
 pub fn unlinkat<Fd: std::os::fd::AsFd, P: ?Sized + NixPath>(
     dirfd: Fd,
     path: &P,
@@ -3388,6 +3389,7 @@ pub unsafe fn rfork(flags: RforkFlags) -> Result<ForkResult> {
 }
 
 #[cfg(feature = "fs")]
+#[cfg(not(target_os = "nuttx"))]
 libc_bitflags! {
     /// Options for access()
     #[cfg_attr(docsrs, doc(cfg(feature = "fs")))]
@@ -3405,6 +3407,7 @@ libc_bitflags! {
 
 feature! {
 #![feature = "fs"]
+#[cfg(not(target_os = "nuttx"))]
 
 /// Checks the file named by `path` for accessibility according to the flags given by `amode`
 /// See [access(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/access.html)
@@ -3422,7 +3425,7 @@ pub fn access<P: ?Sized + NixPath>(path: &P, amode: AccessFlags) -> Result<()> {
 ///
 /// [faccessat(2)](http://pubs.opengroup.org/onlinepubs/9699919799/functions/faccessat.html)
 // redox: does not appear to support the *at family of syscalls.
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
 pub fn faccessat<Fd: std::os::fd::AsFd, P: ?Sized + NixPath>(
     dirfd: Fd,
     path: &P,

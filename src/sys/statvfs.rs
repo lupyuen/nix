@@ -9,7 +9,7 @@ use libc::{self, c_ulong};
 
 use crate::{errno::Errno, NixPath, Result};
 
-#[cfg(not(target_os = "redox"))]
+#[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
 libc_bitflags!(
     /// File system mount Flags
     #[derive(Default)]
@@ -89,16 +89,19 @@ impl Statvfs {
     }
 
     /// Get the total number of file inodes
+    #[cfg(not(target_os = "nuttx"))]
     pub fn files(&self) -> libc::fsfilcnt_t {
         self.0.f_files
     }
 
     /// Get the number of free file inodes
+    #[cfg(not(target_os = "nuttx"))]
     pub fn files_free(&self) -> libc::fsfilcnt_t {
         self.0.f_ffree
     }
 
     /// Get the number of free file inodes for unprivileged users
+    #[cfg(not(target_os = "nuttx"))]
     pub fn files_available(&self) -> libc::fsfilcnt_t {
         self.0.f_favail
     }
@@ -115,7 +118,7 @@ impl Statvfs {
     }
 
     /// Get the mount flags
-    #[cfg(not(target_os = "redox"))]
+    #[cfg(not(any(target_os = "redox", target_os = "nuttx")))]
     pub fn flags(&self) -> FsFlags {
         FsFlags::from_bits_truncate(self.0.f_flag)
     }

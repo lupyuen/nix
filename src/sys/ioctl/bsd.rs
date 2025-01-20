@@ -1,10 +1,10 @@
 /// The datatype used for the ioctl number
 #[doc(hidden)]
-#[cfg(not(solarish))]
+#[cfg(not(any(solarish, target_os = "nuttx")))]
 pub type ioctl_num_type = ::libc::c_ulong;
 
 #[doc(hidden)]
-#[cfg(solarish)]
+#[cfg(any(solarish, target_os = "nuttx"))]
 pub type ioctl_num_type = ::libc::c_int;
 
 /// The datatype used for the 3rd argument

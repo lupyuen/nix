@@ -37,6 +37,7 @@ feature! {
     solarish,
     target_os = "fuchsia",
     target_os = "redox",
+    target_os = "nuttx"
 ))]
 #[cfg(feature = "ioctl")]
 #[cfg_attr(docsrs, doc(cfg(feature = "ioctl")))]
